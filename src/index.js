@@ -1,35 +1,72 @@
 import { legacy_createStore } from "redux";
 
-const plus = document.querySelector("#plus");
-const minus = document.querySelector("#minus");
-const number = document.querySelector("span");
+const form = document.querySelector("form");
+const input = document.querySelector("input");
+const ul = document.querySelector("ul");
 
-number.innerText = 0;
+const ADD_TODO = "ADD_TODO";
+const DELETE_TODO = "DELETE_TODO";
 
-const PLUS = "Plus";
-const MINUS = "Minus";
+const addToDo = (text) => {
+  return {
+    type: ADD_TODO,
+    text,
+  };
+};
 
-const countModifier = (count = 0, action) => {
-  // Reducer는 Application의 데이터인 state와
-  // 할 일을 정의하는 action을 포함한다.
-  // Reducer가 return하는 것은 무엇이든지 Application의 state가 된다.
+const deleteToDo = (id) => {
+  return {
+    type: DELETE_TODO,
+    id,
+  };
+};
+
+const reducer = (state = [], action) => {
   switch (action.type) {
-    case PLUS:
-      return count + 1;
-    case MINUS:
-      return count - 1;
+    case ADD_TODO:
+      const newToDoArray = { text: action.text, id: Date.now() };
+      return [newToDoArray, ...state];
+    case DELETE_TODO:
+      const cleanedArray = state.filter((element) => element.id !== action.id);
+      return cleanedArray;
     default:
-      return count;
+      return state;
   }
 };
 
-const countStore = legacy_createStore(countModifier);
+const store = legacy_createStore(reducer);
 
-const onChange = () => {
-  number.innerText = countStore.getState();
+const paintToDos = () => {
+  const toDos = store.getState();
+  ul.innerHTML = "";
+  toDos.forEach((toDo) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.innerText = "DEL";
+    btn.addEventListener("click", dispatchDeleteToDo);
+    li.id = toDo.id;
+    li.innerText = toDo.text;
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
 };
 
-countStore.subscribe(onChange);
+store.subscribe(paintToDos);
 
-plus.addEventListener("click", () => countStore.dispatch({ type: PLUS }));
-minus.addEventListener("click", () => countStore.dispatch({ type: MINUS }));
+const dispatchAddToDo = (text) => {
+  store.dispatch(addToDo(text));
+};
+
+const dispatchDeleteToDo = (event) => {
+  const id = parseInt(event.target.parentNode.id);
+  store.dispatch(deleteToDo(id));
+};
+
+const onSubmit = (event) => {
+  event.preventDefault();
+  const toDo = input.value;
+  input.value = "";
+  dispatchAddToDo(toDo);
+};
+
+form.addEventListener("submit", onSubmit);
